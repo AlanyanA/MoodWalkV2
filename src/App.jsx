@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Ctx, Sheet, Chip, buzz, useApp as useCtx } from './components/ui.jsx';
+import { Ctx, Sheet, Chip, Icon, buzz, useApp as useCtx } from './components/ui.jsx';
 import MusicSheet from './components/MusicSheet.jsx';
 import Plan from './screens/Plan.jsx';
 import { Reflect, Postcard, ReviewFields, PlaceSelect } from './screens/Reflect.jsx';
 import Walk from './screens/Walk.jsx';
 import Places from './screens/Places.jsx';
-import Journal from './screens/Journal.jsx';
 import Settings from './screens/Settings.jsx';
-import { usePersisted } from './lib/store.js';
+import { usePersisted, save } from './lib/store.js';
 import { music } from './lib/music.js';
 import { HF as NOTES, goalById } from './data/content.js';
 import { routeById, ROUTES } from './data/routes.js';
 
 const DEFAULT_SETTINGS = { text: 'm', contrast: 'normal', theme: 'system', motion: 'auto', guide: 'turn', orient: 'track', sens: 0.5, clock: 'auto', tracking: 'demo', lens: false };
-const DEFAULT_PLAN = { step: 'goal', goal: null, feel: null, time: '15-30', prefs: [], access: [], music: true, route: null, compare: false, reveal: false, nightDecided: false, nightAuto: false, shared: false, post: null, lastEntry: null };
+const DEFAULT_PLAN = { step: 'goal', goal: null, feel: null, time: '15-30', prefs: [], access: [], music: true, route: null, compare: false, reveal: false, nightDecided: false, nightAuto: false, shared: false, post: null, lastWalk: null, remind: null };
+
+// wait before suggesting a rating after a skipped review (15–30 s)
+const REMIND_DELAY = 20000;
+save('journal', null); // the journal feature was removed; clear old data
 
 const TABS = [
   ['walk', 'Walk', <path key="p" d="M13 4a2 2 0 1 1 0 .1M10 21l2-6 3 3v3M9 12l2-4 3 1 2 3 3 1M11 8l-2 5" />],
   ['places', 'Places', <g key="p"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z" /><circle cx="12" cy="9" r="2.5" /></g>],
-  ['journal', 'Journal', <g key="p"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M9 9h6M9 13h4" /></g>],
   ['settings', 'Settings', <g key="p"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></g>],
 ];
 
@@ -37,7 +39,6 @@ function useDark(theme) {
 export default function App() {
   const [settings, setSettings] = usePersisted('settings', DEFAULT_SETTINGS);
   const [plan, setPlan] = usePersisted('plan', DEFAULT_PLAN);
-  const [journal, setJournal] = usePersisted('journal', []);
   const [reviews, setReviews] = usePersisted('reviews', []);
   const [reports, setReports] = usePersisted('reports', []);
   const [confirms, setConfirms] = usePersisted('confirms', {});
@@ -47,6 +48,7 @@ export default function App() {
   const [ui, setUi] = usePersisted('ui', { tab: 'walk', openPlace: null });
   const [sheet, setSheet] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
+  const [nudge, setNudge] = useState(null);
   const toastTimer = useRef();
   const dark = useDark(settings.theme);
   const musicState = useSyncExternalStore(music.subscribe, music.get);
@@ -108,14 +110,31 @@ export default function App() {
 
   const saveReflection = useCallback(() => {
     const p = plan.post;
-    const id = `w${Date.now()}`;
-    const entry = { id, date: new Date().toISOString().slice(0, 10), route: p.route, goal: plan.goal || 'calm', fb: p.fb, fa: p.fa, match: p.match, min: p.min };
-    setJournal((j) => [...j.filter((x) => !x.example), entry]);
-    if (p.noise || p.green || p.safe || p.crowd || p.text) {
-      setReviews((rv) => [...rv, { id: `r${Date.now()}`, route: p.route, when: 'just now', date: entry.date, noise: p.noise || 3, green: p.green || 3, safe: p.safe || 3, crowd: p.crowd || 3, text: p.text || '' }]);
+    const date = new Date().toISOString().slice(0, 10);
+    const rated = !!(p.match || p.noise || p.green || p.safe || p.crowd || p.text);
+    if (rated) {
+      setReviews((rv) => [...rv, { id: `r${Date.now()}`, route: p.route, when: 'just now', date, match: p.match || null, noise: p.noise || 3, green: p.green || 3, safe: p.safe || 3, crowd: p.crowd || 3, text: p.text || '' }]);
     }
-    patchPlan({ step: 'postcard', post: null, lastEntry: id, shared: false });
-  }, [plan, setJournal, setReviews, patchPlan]);
+    const lastWalk = { route: p.route, goal: plan.goal || 'calm', fb: p.fb, fa: p.fa, min: p.min, date };
+    patchPlan({ step: 'postcard', post: null, lastWalk, shared: false, remind: rated ? null : { route: p.route, at: Date.now() + REMIND_DELAY } });
+  }, [plan, setReviews, patchPlan]);
+
+  const skipReflection = useCallback(() => {
+    patchPlan({ step: 'goal', post: null, remind: { route: plan.post.route, at: Date.now() + REMIND_DELAY } });
+  }, [plan, patchPlan]);
+
+  // Gentle "rate the route" reminder: waits, never shows during a walk or over an open sheet, hides itself.
+  useEffect(() => {
+    const r = plan.remind;
+    if (!r || walk || sheet) return undefined;
+    const t = setTimeout(() => { setNudge(r); patchPlan({ remind: null }); }, Math.max(1500, r.at - Date.now()));
+    return () => clearTimeout(t);
+  }, [plan.remind, walk, sheet, patchPlan]);
+  useEffect(() => {
+    if (!nudge) return undefined;
+    const t = setTimeout(() => setNudge(null), 12000);
+    return () => clearTimeout(t);
+  }, [nudge]);
 
   const deleteReview = useCallback((id) => {
     const old = reviews;
@@ -124,14 +143,13 @@ export default function App() {
   }, [reviews, setReviews, toast]);
 
   const ctx = {
-    settings, patchSettings, plan, patchPlan, patchPost, journal, setJournal, reviews, setReviews, reports, setReports, confirms, setConfirms,
-    tune, setTune, walk, setWalk, ui, setUi, setTab, openSheet, closeSheet, toast, dark, musicState, startWalk, finishWalk, saveReflection, deleteReview,
+    settings, patchSettings, plan, patchPlan, patchPost, reviews, setReviews, reports, setReports, confirms, setConfirms,
+    tune, setTune, walk, setWalk, ui, setUi, setTab, openSheet, closeSheet, toast, dark, musicState, startWalk, finishWalk, saveReflection, skipReflection, deleteReview,
   };
 
   const tab = ui.tab;
   let view;
   if (tab === 'places') view = <Places />;
-  else if (tab === 'journal') view = <Journal />;
   else if (tab === 'settings') view = <Settings />;
   else if (plan.step === 'reflect' && plan.post) view = <Reflect />;
   else if (plan.step === 'postcard') view = <Postcard />;
@@ -159,6 +177,14 @@ export default function App() {
         </div>
       </nav>
       {walk && routeById(walk.route) && <Walk />}
+      {nudge && !walk && !sheet && routeById(nudge.route) && (
+        <div className="nudge" role="status" aria-live="polite">
+          <span className="nudgedot" aria-hidden="true" />
+          <span className="nudgetext"><b>Rate {routeById(nudge.route).name}?</b><span className="small muted">Takes 30 seconds and helps the next walker.</span></span>
+          <button type="button" className="btn primary sm" onClick={() => { openSheet({ kind: 'review', route: nudge.route }); setNudge(null); }}>Rate</button>
+          <button type="button" className="iconbtn sm" aria-label="Dismiss" onClick={() => setNudge(null)}><Icon.close /></button>
+        </div>
+      )}
       {sheet && <SheetHost sheet={sheet} onClose={closeSheet} />}
       {toastMsg && (
         <div className="toast" role="status" key={toastMsg.id}>
@@ -176,15 +202,15 @@ function SheetHost({ sheet, onClose }) {
     return <Sheet title={n.t} onClose={onClose}><p>{n.x}</p><p className="small muted" style={{ marginTop: 12 }}>Source: {n.src}</p></Sheet>;
   }
   if (sheet.kind === 'music') return <MusicSheet onClose={onClose} />;
-  if (sheet.kind === 'review') return <ReviewSheet onClose={onClose} />;
+  if (sheet.kind === 'review') return <ReviewSheet onClose={onClose} route={sheet.route} />;
   if (sheet.kind === 'report') return <ReportSheet onClose={onClose} />;
   if (sheet.kind === 'share') return <ShareSheet onClose={onClose} />;
   return null;
 }
 
-function ReviewSheet({ onClose }) {
+function ReviewSheet({ onClose, route }) {
   const { setReviews, toast, setUi } = useCtx();
-  const [d, setD] = useState({ route: 'sharosu' });
+  const [d, setD] = useState({ route: route || 'sharosu' });
   const upd = (x) => setD((s) => ({ ...s, ...x }));
   const post = () => {
     const rv = { id: `r${Date.now()}`, route: d.route, when: 'just now', date: new Date().toISOString().slice(0, 10), noise: d.noise || 3, green: d.green || 3, safe: d.safe || 3, crowd: d.crowd || 3, text: d.text || '' };

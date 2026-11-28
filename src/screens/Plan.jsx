@@ -136,8 +136,8 @@ function Prefs() {
 const dots = (v) => '●'.repeat(Math.round(v * 4) + 1) + '○'.repeat(4 - Math.round(v * 4));
 
 function Results() {
-  const { plan, patchPlan, tune, journal, dark } = useApp();
-  const top = useMemo(() => ranked(plan, tune, journal).slice(0, 3), [plan, tune, journal]);
+  const { plan, patchPlan, tune, dark } = useApp();
+  const top = useMemo(() => ranked(plan, tune).slice(0, 3), [plan, tune]);
   const g = goalById(plan.goal);
   const summary = [g.label, timeById(plan.time).short, ...plan.prefs.map((p) => PREFS.find((x) => x[0] === p)[1]), ...plan.access.map((p) => ACCESS.find((x) => x[0] === p)[1])];
   return (

@@ -1,7 +1,7 @@
 import { ROUTES, SAMPLE_REVIEWS } from '../data/routes.js';
 import { goalById, timeById } from '../data/content.js';
 
-export function scoreRoute(r, plan, tune, journal) {
+export function scoreRoute(r, plan, tune) {
   const g = goalById(plan.goal);
   let s = 0;
   let ws = 0;
@@ -20,9 +20,6 @@ export function scoreRoute(r, plan, tune, journal) {
   if (plan.access.includes('nocrowd') && r.crowd > 0.6) { boost -= 0.25; warn.push('Often crowded'); }
   const t = timeById(plan.time);
   if (r.min > t.max + 5 || r.min < t.min - 3) { boost -= 0.35; warn.push(`About ${r.min} min`); }
-  // personal learning: how much this route lifted your mood before
-  const mine = journal.filter((j) => j.route === r.id && !j.example);
-  if (mine.length) boost += (mine.reduce((a, j) => a + (j.fa - j.fb), 0) / mine.length) * 0.04;
   // small "hidden gem" boost so popular routes do not take over (feedback loop)
   if (r.reviews < 20) boost += 0.03;
   const pct = Math.max(5, Math.min(99, Math.round((base + boost) * 100)));
@@ -30,8 +27,8 @@ export function scoreRoute(r, plan, tune, journal) {
   return { r, pct, conf, warn };
 }
 
-export const ranked = (plan, tune, journal) =>
-  ROUTES.map((r) => scoreRoute(r, plan, tune, journal)).sort((a, b) => b.pct - a.pct);
+export const ranked = (plan, tune) =>
+  ROUTES.map((r) => scoreRoute(r, plan, tune)).sort((a, b) => b.pct - a.pct);
 
 export const CONF = { hi: 'High', med: 'Medium', lo: 'Low' };
 

@@ -17,7 +17,7 @@ npm run dev
 
 ## Where the data is saved
 
-All user data (settings, plan in progress, walk in progress, journal, reviews, hazard reports, music choices) is saved in the browser's `localStorage` on each phone. GitHub Pages has no server, so data is not shared between people or devices. **Settings → Your data** can export a backup file and import it on another device.
+All user data (settings, plan in progress, walk in progress, reviews, hazard reports, music choices) is saved in the browser's `localStorage` on each phone. GitHub Pages has no server, so data is not shared between people or devices. **Settings → Your data** can export a backup file and import it on another device.
 
 To share reviews between users you would need a backend such as Firebase or Supabase.
 

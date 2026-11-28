@@ -96,9 +96,3 @@ export const SAMPLE_REVIEWS = [
   { route: 'grand', when: '2 weeks ago', noise: 3, green: 4, safe: 4, crowd: 3, text: 'Took me almost two hours with breaks. Saw a bit of everything.' },
 ];
 
-export const SAMPLE_JOURNAL = [
-  { id: 'ex1', example: true, date: '2026-11-17', route: 'valley', goal: 'calm', fb: 2, fa: 4, match: 'yes', min: 44 },
-  { id: 'ex2', example: true, date: '2026-11-19', route: 'sharosu', goal: 'connected', fb: 3, fa: 4, match: 'yes', min: 21 },
-  { id: 'ex3', example: true, date: '2026-11-21', route: 'kkachi', goal: 'energize', fb: 3, fa: 5, match: 'somewhat', min: 65 },
-  { id: 'ex4', example: true, date: '2026-11-23', route: 'office', goal: 'clear', fb: 2, fa: 3, match: 'no', min: 11 },
-];

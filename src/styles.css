@@ -171,7 +171,7 @@ textarea, select { width: 100%; border: 1.5px solid var(--line); border-radius: 
 
 /* tab bar */
 nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 900; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
-nav.tabs .in { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+nav.tabs .in { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); }
 nav.tabs button { background: none; border: 0; min-height: 66px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 0.8rem; color: var(--muted); font-weight: 700; }
 nav.tabs svg { width: 24px; height: 24px; }
 nav.tabs button[aria-current="page"] { color: var(--ink); }
@@ -249,3 +249,49 @@ nav.tabs button[aria-current="page"] svg { color: var(--mood); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 :root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before { transition: none !important; animation: none !important; }
+
+/* optional rating fold on the feedback screen */
+.fold { padding: 0; border-style: dashed; border-width: 2px; }
+.fold.open { border-style: solid; border-width: 1px; }
+.foldbtn { width: 100%; min-height: 68px; display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; background: transparent; text-align: left; border-radius: var(--r); }
+.foldbtn svg { width: 22px; height: 22px; flex: none; }
+.foldtitle { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.foldtitle b { font-family: var(--f-display); font-size: 1.05rem; }
+.foldbody { padding: 0 16px 16px; }
+
+/* gentle "rate the route" reminder */
+.nudge { position: fixed; z-index: 950; top: calc(env(safe-area-inset-top, 0px) + 62px); left: 50%; transform: translateX(-50%); width: min(448px, calc(100% - 24px)); display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 14px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14); animation: drop 0.35s ease; }
+@keyframes drop { from { opacity: 0; transform: translate(-50%, -12px); } }
+.nudgedot { width: 10px; height: 10px; border-radius: 50%; background: var(--mood); flex: none; }
+.nudgetext { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.nudgetext b { font-size: 0.95rem; }
+.btn.sm { min-height: 40px; padding: 0 16px; font-size: 0.95rem; }
+.iconbtn.sm { min-width: 40px; min-height: 40px; padding: 0; }
+
+/* hover & press feedback */
+.btn, .iconbtn, .chip, .seg button, .rate button, .time, .feel, .goal, .rcard, .plcard, .tracks button, .orientmenu button,
+.foldbtn, .comparebtn, nav.tabs button, .placehead, .musicrow, .linkbtn, .nudge button {
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+}
+@media (hover: hover) {
+  .btn:not([disabled]):hover { filter: brightness(1.07); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14); transform: translateY(-1px); }
+  .btn.ghost:not([disabled]):hover { border-color: var(--mood); }
+  .goal:hover, .feel:hover, .time:not([aria-pressed="true"]):hover, .rcard:hover, .plcard:hover, .musicrow:hover {
+    border-color: color-mix(in srgb, var(--mood) 60%, var(--line)); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); transform: translateY(-2px);
+  }
+  .goal:hover { border-color: var(--mc); }
+  .iconbtn:hover, .chip:not([aria-pressed="true"]):hover, .seg button:not([aria-pressed="true"]):hover, .rate button:not([aria-pressed="true"]):hover,
+  .tracks button:hover, .orientmenu button:hover, .foldbtn:hover, .comparebtn:hover, .placehead:hover, nav.tabs button:hover {
+    background-color: color-mix(in srgb, var(--mood) 10%, var(--surface));
+  }
+  .chip:not([aria-pressed="true"]):hover, .rate button:not([aria-pressed="true"]):hover, .iconbtn:hover { border-color: var(--mood); }
+  .linkbtn:hover { text-decoration-thickness: 2px; }
+  nav.tabs button:hover { color: var(--ink); }
+}
+.btn:not([disabled]):active, .iconbtn:active, .chip:active, .seg button:active, .rate button:active, .time:active, .feel:active, .goal:active,
+.rcard:active, .plcard:active, .tracks button:active, .orientmenu button:active, .foldbtn:active, .comparebtn:active, nav.tabs button:active,
+.placehead:active, .musicrow:active, .nudge button:active {
+  transform: scale(0.97); filter: brightness(0.93); box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) { .btn, .iconbtn, .chip, .goal, .feel, .time, .rcard, .plcard, .musicrow { transform: none !important; } }
+:root[data-motion="reduce"] :is(.btn, .iconbtn, .chip, .goal, .feel, .time, .rcard, .plcard, .musicrow) { transform: none !important; }

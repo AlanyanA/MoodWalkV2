@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
    GitHub Pages has no server, so there is no shared database. Settings → Export
    saves a backup file that can be imported on another device. */
 const P = 'moodwalk:v1:';
-export const KEYS = ['settings', 'plan', 'journal', 'reviews', 'reports', 'confirms', 'tune', 'music', 'walk', 'ui'];
+export const KEYS = ['settings', 'plan', 'reviews', 'reports', 'confirms', 'tune', 'music', 'walk', 'ui'];
 
 export function load(k, d) {
   try {

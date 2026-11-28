@@ -8,7 +8,7 @@ const TUNE = ['green', 'quiet', 'lively', 'views', 'novelty', 'elevation'];
 const tuneLabel = (v) => (v === 0 ? 'Ignore' : v < 1 ? 'Less' : v === 1 ? 'Normal' : v < 2 ? 'More' : 'A lot');
 
 export default function Settings() {
-  const { settings, patchSettings, tune, setTune, toast, journal, reviews, reports } = useApp();
+  const { settings, patchSettings, tune, setTune, toast, reviews, reports } = useApp();
   const [confirmErase, setConfirmErase] = useState(false);
   const file = useRef();
   const s = settings;
@@ -72,7 +72,7 @@ export default function Settings() {
 
       <section className="card stack" style={{ gap: 12 }}>
         <h2>Your data</h2>
-        <p className="small">Everything is saved on this device: {journal.length} journal entr{journal.length === 1 ? 'y' : 'ies'}, {reviews.length} review{reviews.length === 1 ? '' : 's'}, {reports.length} report{reports.length === 1 ? '' : 's'}, your settings and any walk in progress. Nothing is sent to a server.</p>
+        <p className="small">Everything is saved on this device: {reviews.length} review{reviews.length === 1 ? '' : 's'}, {reports.length} report{reports.length === 1 ? '' : 's'}, your settings and any walk in progress. Nothing is sent to a server.</p>
         <button type="button" className="btn ghost" onClick={doExport}>Export backup file</button>
         <button type="button" className="btn ghost" onClick={() => file.current.click()}>Import backup file</button>
         <input ref={file} type="file" accept="application/json,.json" hidden onChange={doImport} />
